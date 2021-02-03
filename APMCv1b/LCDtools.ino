@@ -4,7 +4,7 @@
   Detect the button pressed and return the value
   Uses global values buttonWas, buttonJustPressed, buttonJustReleased.
 --------------------------------------------------------------------------------------*/
-
+/*
 byte ReadButtons()
 {
    unsigned int buttonVoltage;
@@ -56,4 +56,4 @@ byte ReadButtons()
    
    return( button );
 }
-
+*/

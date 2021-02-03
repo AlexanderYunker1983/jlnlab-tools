@@ -38,22 +38,22 @@ http://www.hobbyking.com/hobbyking/store/__25087__Arduino_LCD_Keypad_Shield.html
 #include <avr/io.h>
 #include <avr/eeprom.h>
 #include <math.h>
-#include <LiquidCrystal.h>   // include LCD library
-#include "LCDtools.h"
+//#include <LiquidCrystal.h>   // include LCD library
+//#include "LCDtools.h"
 
 /*--------------------------------------------------------------------------------------
   Init the LCD library with the LCD pins to be used
 --------------------------------------------------------------------------------------*/
-LiquidCrystal lcd( 8, 9, 4, 5, 6, 7 );   //Pins for the freetronics 16x2 LCD shield. LCD: ( RS, E, LCD-D4, LCD-D5, LCD-D6, LCD-D7 )
+//LiquidCrystal lcd( 8, 9, 4, 5, 6, 7 );   //Pins for the freetronics 16x2 LCD shield. LCD: ( RS, E, LCD-D4, LCD-D5, LCD-D6, LCD-D7 )
 
 /*--------------------------------------------------------------------------------------
   Variables
 --------------------------------------------------------------------------------------*/
 
-byte buttonJustPressed  = false;         //this will be true after a ReadButtons() call if triggered
-byte buttonJustReleased = false;         //this will be true after a ReadButtons() call if triggered
-byte buttonWas          = BUTTON_NONE;   //used by ReadButtons() for detection of button events
-byte button;
+//byte buttonJustPressed  = false;         //this will be true after a ReadButtons() call if triggered
+//byte buttonJustReleased = false;         //this will be true after a ReadButtons() call if triggered
+//byte buttonWas          = BUTTON_NONE;   //used by ReadButtons() for detection of button events
+//byte button;
 
 /* -----------------DLE gen ------------------*/
 
@@ -72,7 +72,7 @@ static int count             = 0;
 
 static int pulse_on          = 250;  // Pulse lagging after the TDC in µS
 static int pulse_dur         = 2500; // Pulse duration in µS
-static int pulse_long_step   = 250;  // increment step in µS for the tuning
+static int pulse_long_step   = 25;  // increment step in µS for the tuning
 static int lograte           = 300;
 
 #define COIL_MAIN            52  // MAIN COIL  : Digital OUTPUT 52
@@ -85,7 +85,8 @@ static int lograte           = 300;
 #define AUTODURATION        ENABLED  // set for auto timing adjustement Vs the RPM
 #define AUTOSTART           DISABLED  // Autostart mode to help the starting
 
-#define NUMB_POLES           4  // number of magnetic poles
+#define NUMB_POLES           8  // number of magnetic poles
+static int incomingByte = 0; 
 
 /*--------------------------------------------------------------------------------------
 Initialisation of parameters
@@ -108,22 +109,22 @@ void setup()
     
 /* -----------------------------------*/
    //button adc input
-   pinMode( BUTTON_ADC_PIN, INPUT );         //ensure A0 is an input
-   digitalWrite( BUTTON_ADC_PIN, LOW );      //ensure pullup is off on A0
+   //pinMode( BUTTON_ADC_PIN, INPUT );         //ensure A0 is an input
+   //digitalWrite( BUTTON_ADC_PIN, LOW );      //ensure pullup is off on A0
    //lcd backlight control
-   digitalWrite( LCD_BACKLIGHT_PIN, HIGH );  //backlight control pin D3 is high (on)
-   pinMode( LCD_BACKLIGHT_PIN, OUTPUT );     //D3 is an output
+   //digitalWrite( LCD_BACKLIGHT_PIN, HIGH );  //backlight control pin D3 is high (on)
+   //pinMode( LCD_BACKLIGHT_PIN, OUTPUT );     //D3 is an output
    //set up the LCD number of columns and rows: 
-   lcd.begin( 16, 2 );
+   //lcd.begin( 16, 2 );
    //Print some initial text to the LCD.
-   lcd.setCursor( 0, 0 );   //top left
-   lcd.print( "   APMC v1.0B   " ); 
-   lcd.setCursor( 0, 1 );   //top left
-   lcd.print( " www.jlnlab.com" ); 
-   delay(3000);
-   lcd.clear();
-   lcd.setCursor( 0, 0 );   //top left
-   lcd.print( "APMC1B" );
+   //lcd.setCursor( 0, 0 );   //top left
+   //lcd.print( "   APMC v1.0B   " ); 
+   //lcd.setCursor( 0, 1 );   //top left
+   //lcd.print( " www.jlnlab.com" ); 
+   //delay(3000);
+   //lcd.clear();
+   //lcd.setCursor( 0, 0 );   //top left
+   //lcd.print( "APMC1B" );
    hall = false;
 }
 
@@ -135,7 +136,7 @@ void SendPulse()
     if(hall) {  // TDC DETECTED (SOUTH POLE)    
       data_display = false;
       hall = false;
-      if(rpm < 400 && AUTOSTART == ENABLED)      // At low RPM (<300) set to autostart mode
+      if(rpm < 50 && AUTOSTART == ENABLED)      // At low RPM (<300) set to autostart mode
       { delayMicroseconds(7000);
       } else {
       delayMicroseconds(pulse_on); // Send the pulse after pulse_on µS from the TDC
@@ -145,11 +146,11 @@ void SendPulse()
           digitalWrite(COIL_MAIN, LOW);  // High Power OUTPUT ON
       }
       digitalWrite(LED_PULSE, HIGH);  // set the LED on
-      lcd.setCursor( 15, 0 );   //bottom left
-      lcd.print( "T" );
+      //lcd.setCursor( 15, 0 );   //bottom left
+   //   lcd.print( "T" );
       
 #if AUTODURATION == ENABLED                  
-      if(rpm < 400 && AUTOSTART == ENABLED)     // At low RPM (<300) set to autostart mode
+      if(rpm < 50 && AUTOSTART == ENABLED)     // At low RPM (<300) set to autostart mode
       { ptime = 8000;
       } else {
       ptime = 1000*(float)pulse_dur/rpm;  // auto pulse duration Vs RPM
@@ -166,8 +167,8 @@ void SendPulse()
       digitalWrite(LED_PULSE, LOW);   // set the LED oFF
     } 
     else { // OFF TDC
-      lcd.setCursor( 15, 0 );   //bottom left
-      lcd.print( " " );
+      //lcd.setCursor( 15, 0 );   //bottom left
+      //lcd.print( " " );
       data_display = true;
     }     
 }
@@ -178,29 +179,34 @@ void display_pulse()
    count++; 
       if (data_display && count > lograte)
     {    count = 0;
-         lcd.setCursor( 0, 1 );
-         lcd.print( pulse_on ); lcd.print( "  " );
-         lcd.setCursor( 5, 1 );
-         lcd.print( pulse_dur ); lcd.print( " " );
-         lcd.setCursor( 15, 1 ); 
-         if(running)
-         { lcd.print( "O" );
-           lcd.setCursor( 10, 1 );   
-           lcd.print( ptime );  lcd.print( " " );
-         } else {
-           lcd.print( "F" );
-           lcd.setCursor( 10, 1 );   
-           lcd.print( pulse_dur );  lcd.print( " " );         
-         } 
-         lcd.setCursor( 7, 0 );   //bottom left
-         lcd.print( rpm );      
-         lcd.print( "RPM " );   
+         //lcd.setCursor( 0, 1 );
+     //    lcd.print( pulse_on ); lcd.print( "  " );
+       //  lcd.setCursor( 5, 1 );
+         //lcd.print( pulse_dur ); lcd.print( " " );
+//         lcd.setCursor( 15, 1 ); 
+  //       if(running)
+    //     { lcd.print( "O" );
+      //     lcd.setCursor( 10, 1 );   
+        //   lcd.print( ptime );  lcd.print( " " );
+//         } else {
+  //         lcd.print( "F" );
+    //       lcd.setCursor( 10, 1 );   
+      //     lcd.print( pulse_dur );  lcd.print( " " );         
+        // } 
+ //        lcd.setCursor( 7, 0 );   //bottom left
+   //      lcd.print( rpm );      
+     //    lcd.print( "RPM " );   
 #if TRACE == ENABLED      
-         Serial.print(micros());  Serial.print(","); Serial.print(rpm);  
-         Serial.print(","); Serial.print(time); 
-         Serial.print(","); Serial.print(pulse_on); 
-         Serial.print(","); Serial.print(pulse_dur); 
-         Serial.print(","); Serial.println(ptime);
+ if (Serial.available() > 0) {
+ incomingByte = Serial.read();
+ Serial.print("------------------");Serial.print(incomingByte);Serial.println("-------------------");
+ }
+         Serial.print("RPM= "); Serial.print(rpm);
+         Serial.print(" min-1 ( "); Serial.print(rpm/60.0);
+         Serial.print("  1/n),    time= "); Serial.print(time); 
+         Serial.print(" ms,   lag= "); Serial.print(pulse_on); 
+         Serial.print(" ms,   dur= "); Serial.print(pulse_dur); 
+         Serial.print(" ms,   ptime= "); Serial.print(ptime);Serial.println(" ms");
 #endif   
     }  
 }
@@ -230,36 +236,45 @@ void calc_rpm()
 void check_buttons()
 {
      //show text label for the button pressed
-   switch( button )
+   switch( incomingByte )
    {
-      case BUTTON_NONE:
+      case 1:
       {
-         lcd.print( "      " );
+         //lcd.print( "      " );
+         incomingByte = 0;
          break;
       }
-      case BUTTON_RIGHT:    // Increase the pulse lag
+      case 57:    // Increase the pulse lag
       {
          pulse_on = pulse_on + pulse_long_step;
+         incomingByte = 0;
          break;
       }
-      case BUTTON_UP:       // Increase the pulse duration
+      case 49:       // Increase the pulse duration
       {
          pulse_dur = pulse_dur + pulse_long_step;
+         incomingByte = 0;
          break;
       }
-      case BUTTON_DOWN:     // Increase the pulse duration
+      case 55:     // Increase the pulse duration
       {
+        if (pulse_dur > pulse_long_step)
          pulse_dur = pulse_dur - pulse_long_step;
+         incomingByte = 0;
          break;
       }
-      case BUTTON_LEFT:    // Decrease the pulse lagging
+      case 51:    // Decrease the pulse lagging
       {
+         if (pulse_on > pulse_long_step)
          pulse_on = pulse_on - pulse_long_step;
+         
+         incomingByte = 0;
         break;
      }
-     case BUTTON_SELECT:   // ON/OFF the Pulse Motor
+     case 53:   // ON/OFF the Pulse Motor
      {        
-        running = !running;       
+        running = !running;    
+        incomingByte = 0;   
         break;
       }
       default:
@@ -268,7 +283,7 @@ void check_buttons()
      }
    }
 }
-
+/*
 // handle buttons
 void control_buttons()
 {
@@ -284,7 +299,7 @@ void control_buttons()
    if( buttonJustReleased )
       buttonJustReleased = false; 
 }
-
+*/
 // Hall sensor function set on interrupt IRQ 2 on PIN 21 for the ArduMega 2560
 void hall_interrupt()
 {
@@ -303,8 +318,8 @@ void loop()
    SendPulse();        // energize the coil with the computed pulse duration
      
    display_pulse();    // display data on the LCD and send the data to the serial port
-   
-   control_buttons();  // check the buttons states
+   check_buttons();
+   //control_buttons();  // check the buttons states
 }
 
 
